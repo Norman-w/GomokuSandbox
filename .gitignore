@@ -1,0 +1,65 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+.vs/
+packages/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# 数据库与本地配置（避免提交本地 DB）
+*.db
+*.db-shm
+*.db-wal
+
+# Node / Nuxt
+node_modules/
+.nuxt/
+.output/
+dist/
+.nitro/
+.cache/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.*
+!.env.example
+
+# IDE / 编辑器
+.idea/
+*.rsuser
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
+
+# 系统
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 测试 / 覆盖率
+coverage/
+*.lcov
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# 其他
+*.swp
+*~
+.cursor/

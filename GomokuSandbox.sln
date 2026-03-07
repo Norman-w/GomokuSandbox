@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "backend", "backend", "{5121739D-840D-4DC6-B845-AA00D03B1903}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GomokuSandbox.Api", "backend\GomokuSandbox.Api\GomokuSandbox.Api.csproj", "{D64C0510-945A-414A-8AC0-BE53989F240F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GomokuSandbox.Cli", "backend\GomokuSandbox.Cli\GomokuSandbox.Cli.csproj", "{5E8FF5A6-64AE-47DC-A03A-B49E750830C5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D64C0510-945A-414A-8AC0-BE53989F240F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D64C0510-945A-414A-8AC0-BE53989F240F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D64C0510-945A-414A-8AC0-BE53989F240F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D64C0510-945A-414A-8AC0-BE53989F240F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E8FF5A6-64AE-47DC-A03A-B49E750830C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E8FF5A6-64AE-47DC-A03A-B49E750830C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E8FF5A6-64AE-47DC-A03A-B49E750830C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E8FF5A6-64AE-47DC-A03A-B49E750830C5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D64C0510-945A-414A-8AC0-BE53989F240F} = {5121739D-840D-4DC6-B845-AA00D03B1903}
+		{5E8FF5A6-64AE-47DC-A03A-B49E750830C5} = {5121739D-840D-4DC6-B845-AA00D03B1903}
+	EndGlobalSection
+EndGlobal
