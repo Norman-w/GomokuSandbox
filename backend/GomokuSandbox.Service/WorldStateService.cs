@@ -210,14 +210,17 @@ public class WorldStateService : IWorldState
         if (status == "WhiteWon") UpdatePlayerScore(game.WhitePlayerId, 1);
     }
 
-    /// <summary>重置世界：将当前进行中的对局标记为 Idle，再清除叙事，使之后读到的“当前对局”为空。</summary>
+    /// <summary>重置世界：删除本世界在库中的全部关联数据（对局、棋步、玩家、叙事、规则），相当于世界毁灭，之后 AI 会从统领者发话、造人重新开始。</summary>
     public void ResetWorld()
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        // 直接按条件更新到数据库，不依赖实体跟踪
-        db.Games.Where(g => g.Status == "Playing").ExecuteUpdate(s => s.SetProperty(g => g.Status, "Idle"));
-        _narrative.Clear();
+        db.GameMoves.RemoveRange(db.GameMoves);
+        db.Games.RemoveRange(db.Games);
+        db.Players.RemoveRange(db.Players);
+        db.NarrativeEntries.RemoveRange(db.NarrativeEntries);
+        db.WorldRules.RemoveRange(db.WorldRules);
+        db.SaveChanges();
     }
 
     private static Game? GetCurrentPlayingGame(AppDbContext db) =>
