@@ -156,7 +156,7 @@ const creatorEntries = computed(() =>
 
 async function fetchView() {
   try {
-    const r = await fetch(`${apiBase}/api/World/view`)
+    const r = await fetch(`${apiBase}/api/UI/view`)
     if (!r.ok) return
     const raw = await r.json()
     // 兼容后端 PascalCase（如 Snapshot）与 camelCase（snapshot）
@@ -177,7 +177,7 @@ async function fetchView() {
 
 async function ensureGame() {
   try {
-    const r = await fetch(`${apiBase}/api/Game/ensure`, { method: 'POST' })
+    const r = await fetch(`${apiBase}/api/UI/ensure`, { method: 'POST' })
     if (r.ok) {
       await fetchView()
     } else {
@@ -191,7 +191,7 @@ async function ensureGame() {
 
 async function resetWorld() {
   try {
-    const r = await fetch(`${apiBase}/api/World/reset`, { method: 'POST' })
+    const r = await fetch(`${apiBase}/api/UI/reset`, { method: 'POST' })
     if (r.ok) await fetchView()
   } catch (e) {
     console.error(e)
@@ -212,7 +212,7 @@ async function place(x: number, y: number) {
   const turn = view.value?.snapshot?.currentTurn
   if (!turn) return
   try {
-    const r = await fetch(`${apiBase}/api/Game/place`, {
+    const r = await fetch(`${apiBase}/api/UI/place`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ color: turn, x, y }),
@@ -232,10 +232,7 @@ const POLL_INTERVAL_MS = 2000
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  fetchView().then(() => {
-    const snap = view.value?.snapshot
-    if (!snap?.board?.length) ensureGame()
-  })
+  fetchView()
   pollTimer = setInterval(fetchView, POLL_INTERVAL_MS)
 })
 

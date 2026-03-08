@@ -100,7 +100,7 @@ export class ApiClient {
      * @return OK
      */
     ensure(): Promise<void> {
-        let url_ = this.baseUrl + "/api/Game/ensure";
+        let url_ = this.baseUrl + "/api/UI/ensure";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -133,7 +133,7 @@ export class ApiClient {
      * @return OK
      */
     state(): Promise<void> {
-        let url_ = this.baseUrl + "/api/Game/state";
+        let url_ = this.baseUrl + "/api/UI/state";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -167,7 +167,7 @@ export class ApiClient {
      * @return OK
      */
     place(body: PlaceRequest | undefined): Promise<void> {
-        let url_ = this.baseUrl + "/api/Game/place";
+        let url_ = this.baseUrl + "/api/UI/place";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -204,7 +204,7 @@ export class ApiClient {
      * @return OK
      */
     check(): Promise<void> {
-        let url_ = this.baseUrl + "/api/Game/referee/check";
+        let url_ = this.baseUrl + "/api/UI/referee/check";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -364,7 +364,7 @@ export class ApiClient {
      * @return OK
      */
     snapshot(): Promise<WorldSnapshotDto> {
-        let url_ = this.baseUrl + "/api/World/snapshot";
+        let url_ = this.baseUrl + "/api/UI/snapshot";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -401,7 +401,7 @@ export class ApiClient {
      * @return OK
      */
     rulesGET(): Promise<WorldRulesDto> {
-        let url_ = this.baseUrl + "/api/World/rules";
+        let url_ = this.baseUrl + "/api/UI/rules";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -439,7 +439,7 @@ export class ApiClient {
      * @return OK
      */
     rulesPUT(body: WorldRulesDto | undefined): Promise<void> {
-        let url_ = this.baseUrl + "/api/World/rules";
+        let url_ = this.baseUrl + "/api/UI/rules";
         url_ = url_.replace(/[?&]$/, "");
 
         const content_ = JSON.stringify(body);
@@ -476,7 +476,7 @@ export class ApiClient {
      * @return OK
      */
     direction(): Promise<string> {
-        let url_ = this.baseUrl + "/api/World/direction";
+        let url_ = this.baseUrl + "/api/UI/direction";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -514,7 +514,7 @@ export class ApiClient {
      * @return OK
      */
     reset(): Promise<void> {
-        let url_ = this.baseUrl + "/api/World/reset";
+        let url_ = this.baseUrl + "/api/UI/reset";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -547,7 +547,7 @@ export class ApiClient {
      * @return OK
      */
     view(): Promise<WorldViewDto> {
-        let url_ = this.baseUrl + "/api/World/view";
+        let url_ = this.baseUrl + "/api/UI/view";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
