@@ -107,46 +107,12 @@
 </template>
 
 <script setup lang="ts">
+import { normalizeWorldView, type NormalizedWorldView } from '~/lib/normalize-api'
+
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase as string
 
-interface Snapshot {
-  boardSize: number
-  board: number[][]
-  currentTurn: string
-  moveCount: number
-  gameStatus: string
-  winner?: string
-  lastMoveX?: number | null
-  lastMoveY?: number | null
-  gameStartedAt?: string | null
-  gameFinishedAt?: string | null
-}
-
-interface PlayerView {
-  id: number
-  color: string
-  intelligence: number
-  score: number
-  createdAt?: string
-}
-
-interface NarrativeEntry {
-  role: string
-  message: string
-  at: string
-}
-
-interface WorldView {
-  snapshot: Snapshot
-  rules: { minMovesBeforeWin?: number; blackAdvantage?: number; direction?: string }
-  direction: string
-  blackPlayer: PlayerView | null
-  whitePlayer: PlayerView | null
-  narrative: NarrativeEntry[]
-}
-
-const view = ref<WorldView | null>(null)
+const view = ref<NormalizedWorldView | null>(null)
 
 // 无数据时也显示 15x15 空棋盘，避免只显示一块色块
 const boardGrid = computed(() => {
@@ -157,6 +123,7 @@ const boardGrid = computed(() => {
 const boardSize = computed(() => view.value?.snapshot?.boardSize ?? 15)
 const snapshot = computed(() => view.value?.snapshot)
 
+// 叙事已在 normalizeWorldView 中统一为 camelCase，直接按 role/message 使用
 const commanderEntries = computed(() =>
   view.value?.narrative?.filter(e => e.role === 'Commander') ?? []
 )
@@ -193,22 +160,7 @@ async function fetchView() {
     const r = await fetch(`${apiBase}/api/UI/view`)
     if (!r.ok) return
     const raw = await r.json()
-    // 兼容后端 PascalCase（如 Snapshot）与 camelCase（snapshot）
-    const black = raw.blackPlayer ?? raw.BlackPlayer ?? null
-    const white = raw.whitePlayer ?? raw.WhitePlayer ?? null
-    const sn = raw.snapshot ?? raw.Snapshot ?? null
-    if (sn) {
-      sn.gameStartedAt = sn.gameStartedAt ?? sn.GameStartedAt ?? null
-      sn.gameFinishedAt = sn.gameFinishedAt ?? sn.GameFinishedAt ?? null
-    }
-    view.value = {
-      snapshot: sn,
-      rules: raw.rules ?? raw.Rules ?? {},
-      direction: raw.direction ?? raw.Direction ?? '',
-      blackPlayer: black ? { ...black, createdAt: black.createdAt ?? black.CreatedAt } : null,
-      whitePlayer: white ? { ...white, createdAt: white.createdAt ?? white.CreatedAt } : null,
-      narrative: raw.narrative ?? raw.Narrative ?? [],
-    } as WorldView
+    view.value = normalizeWorldView(raw)
   } catch (e) {
     console.error(e)
   }
