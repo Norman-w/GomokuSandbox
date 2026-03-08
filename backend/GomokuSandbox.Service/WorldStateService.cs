@@ -62,7 +62,13 @@ public class WorldStateService : IWorldState
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var entries = _narrative.GetEntries();
+        var hasCommander = entries.Any(e => e.Role == "Commander");
+        var hasCreator = entries.Any(e => e.Role == "Creator");
         var game = GetCurrentPlayingGame(db);
+        // 仅当叙事里已有统领者+造人者时，才把对局当作本世界的有效对局；否则视为未开局，必须先造人再下子
+        if (game != null && (!hasCommander || !hasCreator))
+            game = null;
         var snapshot = game == null ? BuildEmptySnapshot() : BuildSnapshotFromGame(db, game);
         var rules = GetRules();
         string nextRole;
@@ -71,12 +77,12 @@ public class WorldStateService : IWorldState
         if (game == null)
         {
             var playerCount = db.Players.Count(p => p.Color == "Black" || p.Color == "White");
-            if (!_narrative.GetEntries().Any(e => e.Role == "Commander"))
+            if (!hasCommander)
             {
                 nextRole = "Commander";
                 roleContext = new { message = "请统领者发话（SetRules），设定方向与规则。payload 需含 direction（字符串）。" };
             }
-            else if (!_narrative.GetEntries().Any(e => e.Role == "Creator"))
+            else if (!hasCreator)
             {
                 nextRole = "Creator";
                 roleContext = new { message = "请造人者造人（CreatePlayer），造出黑方与白方。payload 需含 color（Black/White）、可选 intelligence。" };
