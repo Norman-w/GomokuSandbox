@@ -33,6 +33,7 @@ public class WorldStateService : IWorldState
     {
         lock (_lock)
         {
+            LoadCurrentGameFromDbIfNeeded();
             var board = new int[Size][];
             for (var i = 0; i < Size; i++)
             {
@@ -59,10 +60,38 @@ public class WorldStateService : IWorldState
 
     public void SetRules(WorldRulesDto rules) { lock (_lock) { _rules = rules; } }
 
+    /// <summary>
+    /// 若内存中无当前对局，则从数据库加载最近一场未结束的对局，使多次 CLI 调用共享同一盘棋。
+    /// </summary>
+    private void LoadCurrentGameFromDbIfNeeded()
+    {
+        if (_currentGameId.HasValue) return;
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var game = db.Games.OrderByDescending(g => g.Id).FirstOrDefault(g => g.Status == "Playing");
+        if (game == null) return;
+        _currentGameId = game.Id;
+        _blackPlayerId = game.BlackPlayerId;
+        _whitePlayerId = game.WhitePlayerId;
+        _board = new int[Size, Size];
+        _moveCount = 0;
+        var moves = db.GameMoves.Where(m => m.GameId == game.Id).OrderBy(m => m.Sequence).ToList();
+        foreach (var m in moves)
+        {
+            _board[m.X, m.Y] = m.Color == "Black" ? 1 : 2;
+            _moveCount++;
+        }
+        _lastMoveX = moves.Count > 0 ? moves.Last().X : (int?)null;
+        _lastMoveY = moves.Count > 0 ? moves.Last().Y : (int?)null;
+        _currentTurn = _moveCount % 2 == 0 ? "Black" : "White";
+        _gameStatus = "Playing";
+    }
+
     public AiNextTurnDto GetAiNextTurn(bool afterRefereeCheck = false, bool refereeRequested = false)
     {
         lock (_lock)
         {
+            LoadCurrentGameFromDbIfNeeded();
             var snapshot = GetSnapshot();
             var rules = GetRules();
             string nextRole;
@@ -130,6 +159,7 @@ public class WorldStateService : IWorldState
     {
         lock (_lock)
         {
+            LoadCurrentGameFromDbIfNeeded();
             if (_gameStatus != "Playing") return (false, "对局已结束");
             if (color != _currentTurn) return (false, $"当前轮到 {_currentTurn}");
             if (x < 0 || x >= Size || y < 0 || y >= Size) return (false, "坐标越界");
