@@ -105,10 +105,12 @@ public class UIController : ControllerBase
     public string GetDirection() => _world.GetRules().Direction;
 
     [HttpPost("reset")]
-    public IActionResult ResetWorld()
+    [HttpGet("reset")]
+    public async Task<ActionResult<WorldViewDto>> ResetWorld(CancellationToken ct)
     {
         _world.ResetWorld();
-        return Ok();
+        var view = await _viewService.GetViewAsync(ct);
+        return Ok(view);
     }
 
     [HttpGet("view")]

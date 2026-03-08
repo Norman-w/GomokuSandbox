@@ -3,7 +3,7 @@
     <h1>五子棋 Gomoku Sandbox</h1>
     <div class="main">
       <div class="left">
-        <p class="status">{{ snapshot?.gameStatus ?? '—' }} · 当前 {{ snapshot?.currentTurn ?? '—' }} 落子 · 共 {{ snapshot?.moveCount ?? 0 }} 步</p>
+        <p class="status">{{ statusLabel }} · 当前 {{ turnLabel }} 落子 · 共 {{ snapshot?.moveCount ?? 0 }} 步</p>
         <p v-if="snapshot?.gameStartedAt" class="game-time">
           <span>开局时间：{{ formatGameTime(snapshot.gameStartedAt) }}</span>
           <template v-if="snapshot?.gameStatus === 'Playing'">
@@ -28,7 +28,7 @@
                   white: cell === 2,
                   'last-placed': snapshot?.lastMoveX === i && snapshot?.lastMoveY === j
                 }"
-                :disabled="!!cell || snapshot?.gameStatus !== 'Playing' || (snapshot?.currentTurn !== 'Black' && snapshot?.currentTurn !== 'White')"
+                :disabled="!!cell || snapshot?.gameStatus !== 'Playing' || !snapshot?.currentTurn || (snapshot?.currentTurn !== 'Black' && snapshot?.currentTurn !== 'White')"
                 @click="place(i, j)"
               >
                 <span v-if="cell" class="stone" :class="cell === 1 ? 'black' : 'white'" />
@@ -122,6 +122,19 @@ const boardGrid = computed(() => {
 })
 const boardSize = computed(() => view.value?.snapshot?.boardSize ?? 15)
 const snapshot = computed(() => view.value?.snapshot)
+// 无对局时显示「未开始」且不显示黑方落子，避免与真实对局混淆
+const statusLabel = computed(() => {
+  const s = snapshot.value
+  if (!s) return '—'
+  if (s.gameStatus === 'Idle' && (s.moveCount ?? 0) === 0) return '未开始'
+  return s.gameStatus ?? '—'
+})
+const turnLabel = computed(() => {
+  const s = snapshot.value
+  if (!s) return '—'
+  if (s.gameStatus === 'Idle' && (s.moveCount ?? 0) === 0) return '—'
+  return s.currentTurn || '—'
+})
 
 // 叙事已在 normalizeWorldView 中统一为 camelCase，直接按 role/message 使用
 const commanderEntries = computed(() =>
@@ -155,11 +168,14 @@ watch(
 )
 onUnmounted(() => { if (elapsedTimer.value) clearInterval(elapsedTimer.value) })
 
-async function fetchView() {
+async function fetchView(opts?: { logWorldResponse?: boolean }) {
   try {
     const r = await fetch(`${apiBase}/api/UI/view`)
     if (!r.ok) return
     const raw = await r.json()
+    if (opts?.logWorldResponse) {
+      console.log('[世界] 完整返回（/api/UI/view）:', JSON.stringify(raw, null, 2))
+    }
     view.value = normalizeWorldView(raw)
   } catch (e) {
     console.error(e)
@@ -193,7 +209,7 @@ async function resetWorld() {
     const r = await fetch(`${apiBase}/api/UI/reset`, { method: 'POST' })
     if (r.ok) {
       await new Promise(r => setTimeout(r, 150))
-      await fetchView()
+      await fetchView({ logWorldResponse: true })
     } else {
       alert('重置失败')
     }

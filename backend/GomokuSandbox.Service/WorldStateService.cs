@@ -230,7 +230,7 @@ public class WorldStateService : IWorldState
     {
         BoardSize = Size,
         Board = Enumerable.Range(0, Size).Select(_ => new int[Size]).ToArray(),
-        CurrentTurn = "Black",
+        CurrentTurn = "",
         MoveCount = 0,
         GameStatus = "Idle",
         BlackPlayerId = null,
