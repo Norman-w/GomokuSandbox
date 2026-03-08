@@ -149,7 +149,8 @@ public static class SpecBuilder
 
     private static object? GetExamplePayloadForAction(ActionSpecAttribute a)
     {
-        if (a.PayloadType == typeof(PlacePayload)) return new { x = 7, y = 7, claimWin = false };
+        if (a.PayloadType == typeof(PlacePayload)) return new { x = 7, y = 7 };
+        if (a.PayloadType == typeof(RefereeCheckPayload)) return new { winner = (string?)null };
         if (a.PayloadType == typeof(CommanderRulesPayload)) return new { direction = "公平对局，先五连者胜。" };
         if (a.PayloadType == typeof(CreatePlayerPayload)) return new { color = "Black", intelligence = 50 };
         return null;
@@ -188,7 +189,7 @@ public static class SpecBuilder
     /// <summary>反射公共 model 类型，输出字段名、类型、摘要，供 AI 理解序列化格式。</summary>
     private static object ReflectModelSchemas()
     {
-        var types = new[] { typeof(AiNextTurnDto), typeof(WorldSnapshotDto), typeof(WorldRulesDto), typeof(PlacePayload), typeof(CommanderRulesPayload), typeof(CreatePlayerPayload) };
+        var types = new[] { typeof(AiNextTurnDto), typeof(WorldSnapshotDto), typeof(WorldRulesDto), typeof(PlacePayload), typeof(RefereeCheckPayload), typeof(CommanderRulesPayload), typeof(CreatePlayerPayload) };
         var result = new Dictionary<string, object>();
         foreach (var t in types)
         {

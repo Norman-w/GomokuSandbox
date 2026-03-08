@@ -31,7 +31,13 @@ public sealed class AiActionService : IAiActionService
             if (p == null) return (null, "Place payload 无效");
             return await PlaceAsync(role, p);
         }
-        if (role == "Referee" && action.Equals("Check", StringComparison.OrdinalIgnoreCase)) return RefereeCheck();
+        if (role == "Referee" && action.Equals("Check", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!payload.HasValue) return (null, "Referee Check 需 AI 提供 payload：{ \"winner\": \"Black\" | \"White\" | null }，表示你判定谁赢或未赢。");
+            var p = JsonSerializer.Deserialize<RefereeCheckPayload>(payload.Value, JsonOptions);
+            if (p == null) return (null, "Referee Check payload 无效");
+            return RefereeCheck(p);
+        }
         if (role == "Commander" && (action == "SetRules" || action == "盘活") && payload.HasValue)
         {
             var p = JsonSerializer.Deserialize<CommanderRulesPayload>(payload.Value, JsonOptions);
@@ -53,16 +59,32 @@ public sealed class AiActionService : IAiActionService
         var (ok, err) = _world.PlacePiece(role, p.X, p.Y);
         if (!ok) return Task.FromResult<(AiNextTurnDto?, string?)>((null, err));
         var result = _world.CheckResult();
-        if (!string.IsNullOrEmpty(result)) { _world.SetGameOver(result); return Task.FromResult<(AiNextTurnDto?, string?)>((_world.GetAiNextTurn(), null)); }
-        var dto = _world.GetAiNextTurn(refereeRequested: p.ClaimWin);
-        dto.LastPlaceClaimWin = p.ClaimWin;
-        return Task.FromResult<(AiNextTurnDto?, string?)>((dto, null));
+        if (result == "Draw" || result == "BlackWon" || result == "WhiteWon")
+        {
+            if (result == "Draw") { _world.SetGameOver(result); return Task.FromResult<(AiNextTurnDto?, string?)>((_world.GetAiNextTurn(), null)); }
+            // 后端算法已算出有人五连，不直接结束对局，交由裁判在 Check 时结合 AI 判定后宣布
+            var dto = _world.GetAiNextTurn(refereeRequested: true);
+            dto.LastPlaceClaimWin = true;
+            return Task.FromResult<(AiNextTurnDto?, string?)>((dto, null));
+        }
+        var next = _world.GetAiNextTurn(refereeRequested: false);
+        next.LastPlaceClaimWin = false;
+        return Task.FromResult<(AiNextTurnDto?, string?)>((next, null));
     }
 
-    private (AiNextTurnDto? Result, string? Error) RefereeCheck()
+    private (AiNextTurnDto? Result, string? Error) RefereeCheck(RefereeCheckPayload p)
     {
-        var result = _world.CheckResult();
-        if (!string.IsNullOrEmpty(result)) _world.SetGameOver(result);
+        var algorithmResult = _world.CheckResult();
+        var winner = string.IsNullOrWhiteSpace(p.Winner) ? null : p.Winner.Trim();
+        if (winner == "Black" || winner == "White")
+        {
+            var expected = winner + "Won";
+            if (algorithmResult == expected)
+            {
+                _world.SetGameOver(algorithmResult);
+                return (_world.GetAiNextTurn(), null);
+            }
+        }
         return (_world.GetAiNextTurn(afterRefereeCheck: true), null);
     }
 

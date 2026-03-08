@@ -110,9 +110,9 @@ public class WorldStateService : IWorldState
             roleContext = gameStatus == "Idle" ? new { message = "世界已重置，请统领者发话或开新局。" } : new { message = "本局已结束，可由统领开新局或调整规则。" };
         }
         else if (afterRefereeCheck) { nextRole = currentTurn; roleContext = new { color = nextRole, currentTurn, moveCount }; }
-        else if (refereeRequested) { nextRole = "Referee"; roleContext = new { message = "棋手自认获胜，请判定是否五连。", playerClaimedWin = true }; }
+        else if (refereeRequested) { nextRole = "Referee"; roleContext = new { message = "后端算法已检测到可能五连，请裁判（你）根据棋盘判定是否真的赢，并提交 Check 的 payload：{ \"winner\": \"Black\" | \"White\" | null }。", playerClaimedWin = true }; }
         else { nextRole = currentTurn; roleContext = null; }
-        if (nextRole == "Referee" && roleContext == null) roleContext = new { message = "请根据规则判定是否已有五连或违规。" };
+        if (nextRole == "Referee" && roleContext == null) roleContext = new { message = "请根据规则判定是否已有五连，并提交 payload：{ \"winner\": \"Black\" | \"White\" | null }。" };
         if (nextRole == "Black" || nextRole == "White")
         {
             var playerId = nextRole == "Black" ? game.BlackPlayerId : game.WhitePlayerId;
