@@ -61,10 +61,9 @@ public sealed class AiActionService : IAiActionService
         var result = _world.CheckResult();
         if (result == "Draw" || result == "BlackWon" || result == "WhiteWon")
         {
-            if (result == "Draw") { _world.SetGameOver(result); return Task.FromResult<(AiNextTurnDto?, string?)>((_world.GetAiNextTurn(), null)); }
-            // 后端算法已算出有人五连，不直接结束对局，交由裁判在 Check 时结合 AI 判定后宣布
-            var dto = _world.GetAiNextTurn(refereeRequested: true);
-            dto.LastPlaceClaimWin = true;
+            _world.SetGameOver(result);
+            var dto = _world.GetAiNextTurn();
+            dto.LastPlaceClaimWin = (result == "BlackWon" || result == "WhiteWon");
             return Task.FromResult<(AiNextTurnDto?, string?)>((dto, null));
         }
         var next = _world.GetAiNextTurn(refereeRequested: false);

@@ -50,6 +50,8 @@ export interface NormalizedWorldView {
   blackPlayer: NormalizedPlayerView | null
   whitePlayer: NormalizedPlayerView | null
   narrative: NormalizedNarrativeEntry[]
+  /** 待裁判判定时，为声称赢的一方（Black/White）；否则为 null。用于显示「我赢了没？」/「等待裁判」 */
+  pendingRefereeBy: string | null
 }
 
 function normalizeSnapshot(raw: Record<string, unknown> | null | undefined): NormalizedSnapshot | null {
@@ -104,6 +106,7 @@ export function normalizeWorldView(raw: Record<string, unknown> | null | undefin
       blackPlayer: null,
       whitePlayer: null,
       narrative: [],
+      pendingRefereeBy: null,
     }
   }
   const blackRaw = pick<Record<string, unknown>>(raw, 'blackPlayer') ?? pick<Record<string, unknown>>(raw, 'BlackPlayer')
@@ -116,6 +119,7 @@ export function normalizeWorldView(raw: Record<string, unknown> | null | undefin
     const entry = normalizeNarrativeEntry(item)
     if (entry) narrative.push(entry)
   }
+  const pendingRefereeBy = (pick(raw, 'pendingRefereeBy') ?? pick(raw, 'PendingRefereeBy')) as string | null | undefined
   return {
     snapshot,
     rules: {
@@ -127,5 +131,6 @@ export function normalizeWorldView(raw: Record<string, unknown> | null | undefin
     blackPlayer: blackRaw ? normalizePlayer(blackRaw) : null,
     whitePlayer: whiteRaw ? normalizePlayer(whiteRaw) : null,
     narrative,
+    pendingRefereeBy: pendingRefereeBy === 'Black' || pendingRefereeBy === 'White' ? pendingRefereeBy : null,
   }
 }

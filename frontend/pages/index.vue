@@ -28,7 +28,7 @@
                   white: cell === 2,
                   'last-placed': snapshot?.lastMoveX === i && snapshot?.lastMoveY === j
                 }"
-                :disabled="!!cell || snapshot?.gameStatus !== 'Playing' || !snapshot?.currentTurn || (snapshot?.currentTurn !== 'Black' && snapshot?.currentTurn !== 'White')"
+                :disabled="!!cell || snapshot?.gameStatus !== 'Playing' || !!view?.pendingRefereeBy || !snapshot?.currentTurn || (snapshot?.currentTurn !== 'Black' && snapshot?.currentTurn !== 'White')"
                 @click="place(i, j)"
               >
                 <span v-if="cell" class="stone" :class="cell === 1 ? 'black' : 'white'" />
@@ -48,13 +48,15 @@
           <div class="player-cards">
             <div
               class="player-card black"
-              :class="{ 'is-turn': snapshot?.currentTurn === 'Black' && snapshot?.gameStatus === 'Playing', 'is-winner': snapshot?.winner === 'Black' }"
+              :class="{ 'is-turn': (snapshot?.currentTurn === 'Black' && snapshot?.gameStatus === 'Playing' && !view?.pendingRefereeBy) || view?.pendingRefereeBy === 'Black', 'is-winner': snapshot?.winner === 'Black' }"
             >
               <div class="player-label">黑方 <span v-if="snapshot?.winner === 'Black'" class="trophy" title="本局获胜">🏆</span></div>
               <template v-if="view?.blackPlayer">
                 <div class="player-info">智商 {{ view.blackPlayer.intelligence }} · 积分 {{ view.blackPlayer.score }}</div>
                 <div class="player-info god-mode">ID {{ view.blackPlayer.id }} · 创建 {{ formatCreatedAt(view.blackPlayer.createdAt) }}</div>
-                <div v-if="snapshot?.currentTurn === 'Black' && snapshot?.gameStatus === 'Playing'" class="turn-badge">轮到我了</div>
+                <div v-if="view?.pendingRefereeBy === 'Black'" class="turn-badge">我赢了没？</div>
+                <div v-else-if="view?.pendingRefereeBy === 'White'" class="turn-badge waiting">等待裁判</div>
+                <div v-else-if="snapshot?.currentTurn === 'Black' && snapshot?.gameStatus === 'Playing'" class="turn-badge">轮到我了</div>
               </template>
               <template v-else>
                 <div class="player-info not-joined">未加入</div>
@@ -62,13 +64,15 @@
             </div>
             <div
               class="player-card white"
-              :class="{ 'is-turn': snapshot?.currentTurn === 'White' && snapshot?.gameStatus === 'Playing', 'is-winner': snapshot?.winner === 'White' }"
+              :class="{ 'is-turn': (snapshot?.currentTurn === 'White' && snapshot?.gameStatus === 'Playing' && !view?.pendingRefereeBy) || view?.pendingRefereeBy === 'White', 'is-winner': snapshot?.winner === 'White' }"
             >
               <div class="player-label">白方 <span v-if="snapshot?.winner === 'White'" class="trophy" title="本局获胜">🏆</span></div>
               <template v-if="view?.whitePlayer">
                 <div class="player-info">智商 {{ view.whitePlayer.intelligence }} · 积分 {{ view.whitePlayer.score }}</div>
                 <div class="player-info god-mode">ID {{ view.whitePlayer.id }} · 创建 {{ formatCreatedAt(view.whitePlayer.createdAt) }}</div>
-                <div v-if="snapshot?.currentTurn === 'White' && snapshot?.gameStatus === 'Playing'" class="turn-badge">轮到我了</div>
+                <div v-if="view?.pendingRefereeBy === 'White'" class="turn-badge">我赢了没？</div>
+                <div v-else-if="view?.pendingRefereeBy === 'Black'" class="turn-badge waiting">等待裁判</div>
+                <div v-else-if="snapshot?.currentTurn === 'White' && snapshot?.gameStatus === 'Playing'" class="turn-badge">轮到我了</div>
               </template>
               <template v-else>
                 <div class="player-info not-joined">未加入</div>
