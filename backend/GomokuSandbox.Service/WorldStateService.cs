@@ -23,7 +23,7 @@ public class WorldStateService : IWorldState
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var game = GetCurrentPlayingGame(db);
+        var game = GetLatestGame(db);
         if (game == null)
             return BuildEmptySnapshot();
         return BuildSnapshotFromGame(db, game);
@@ -65,11 +65,12 @@ public class WorldStateService : IWorldState
         var entries = _narrative.GetEntries();
         var hasCommander = entries.Any(e => e.Role == "Commander");
         var hasCreator = entries.Any(e => e.Role == "Creator");
-        var game = GetCurrentPlayingGame(db);
+        var latestGame = GetLatestGame(db);
         // 仅当叙事里已有统领者+造人者时，才把对局当作本世界的有效对局；否则视为未开局，必须先造人再下子
-        if (game != null && (!hasCommander || !hasCreator))
-            game = null;
-        var snapshot = game == null ? BuildEmptySnapshot() : BuildSnapshotFromGame(db, game);
+        if (latestGame != null && (!hasCommander || !hasCreator))
+            latestGame = null;
+        var game = latestGame != null && latestGame.Status == "Playing" ? latestGame : null;
+        var snapshot = latestGame == null ? BuildEmptySnapshot() : BuildSnapshotFromGame(db, latestGame);
         var rules = GetRules();
         string nextRole;
         object? roleContext = null;
@@ -95,7 +96,9 @@ public class WorldStateService : IWorldState
             else
             {
                 nextRole = "Commander";
-                roleContext = new { message = "两人已造好，请统领者开新局（开新局）。无需 payload。" };
+                roleContext = snapshot.GameStatus == "BlackWon" || snapshot.GameStatus == "WhiteWon"
+                    ? new { message = "本局已结束，可由统领开新局或调整规则。" }
+                    : new { message = "两人已造好，请统领者开新局（开新局）。无需 payload。" };
             }
             return new AiNextTurnDto { NextRole = nextRole, RoleContext = roleContext, WorldSnapshot = snapshot, Rules = rules, Direction = rules.Direction };
         }
@@ -232,6 +235,10 @@ public class WorldStateService : IWorldState
     private static Game? GetCurrentPlayingGame(AppDbContext db) =>
         db.Games.OrderByDescending(g => g.Id).FirstOrDefault(g => g.Status == "Playing");
 
+    /// <summary>取最近一局（按 Id 最大），不论进行中或已结束；用于对局结束后仍展示棋盘与胜者，不重置世界。</summary>
+    private static Game? GetLatestGame(AppDbContext db) =>
+        db.Games.OrderByDescending(g => g.Id).FirstOrDefault();
+
     private static WorldSnapshotDto BuildEmptySnapshot() => new()
     {
         BoardSize = Size,
@@ -273,7 +280,7 @@ public class WorldStateService : IWorldState
         {
             BoardSize = Size,
             Board = board,
-            CurrentTurn = moveCount % 2 == 0 ? "Black" : "White",
+            CurrentTurn = game.Status == "Playing" ? (moveCount % 2 == 0 ? "Black" : "White") : "",
             MoveCount = moveCount,
             GameStatus = game.Status,
             BlackPlayerId = game.BlackPlayerId,

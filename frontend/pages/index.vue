@@ -48,9 +48,9 @@
           <div class="player-cards">
             <div
               class="player-card black"
-              :class="{ 'is-turn': snapshot?.currentTurn === 'Black' && snapshot?.gameStatus === 'Playing' }"
+              :class="{ 'is-turn': snapshot?.currentTurn === 'Black' && snapshot?.gameStatus === 'Playing', 'is-winner': snapshot?.winner === 'Black' }"
             >
-              <div class="player-label">黑方</div>
+              <div class="player-label">黑方 <span v-if="snapshot?.winner === 'Black'" class="trophy" title="本局获胜">🏆</span></div>
               <template v-if="view?.blackPlayer">
                 <div class="player-info">智商 {{ view.blackPlayer.intelligence }} · 积分 {{ view.blackPlayer.score }}</div>
                 <div class="player-info god-mode">ID {{ view.blackPlayer.id }} · 创建 {{ formatCreatedAt(view.blackPlayer.createdAt) }}</div>
@@ -62,9 +62,9 @@
             </div>
             <div
               class="player-card white"
-              :class="{ 'is-turn': snapshot?.currentTurn === 'White' && snapshot?.gameStatus === 'Playing' }"
+              :class="{ 'is-turn': snapshot?.currentTurn === 'White' && snapshot?.gameStatus === 'Playing', 'is-winner': snapshot?.winner === 'White' }"
             >
-              <div class="player-label">白方</div>
+              <div class="player-label">白方 <span v-if="snapshot?.winner === 'White'" class="trophy" title="本局获胜">🏆</span></div>
               <template v-if="view?.whitePlayer">
                 <div class="player-info">智商 {{ view.whitePlayer.intelligence }} · 积分 {{ view.whitePlayer.score }}</div>
                 <div class="player-info god-mode">ID {{ view.whitePlayer.id }} · 创建 {{ formatCreatedAt(view.whitePlayer.createdAt) }}</div>
@@ -155,7 +155,7 @@ watch(
     const start = view.value?.snapshot?.gameStartedAt
     if (!start) return
     const update = () => {
-      const startMs = new Date(start).getTime()
+      const startMs = parseUtc(start)
       const sec = Math.floor((Date.now() - startMs) / 1000)
       const m = Math.floor(sec / 60)
       const s = sec % 60
@@ -182,10 +182,17 @@ async function fetchView(opts?: { logWorldResponse?: boolean }) {
   }
 }
 
+/** 后端返回 UTC 时间但常不带 Z，按 UTC 解析再用于计算/显示，避免 GMT+8 等时区多出 8 小时 */
+function parseUtc(iso: string): number {
+  const s = iso.trim()
+  const hasTz = s.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(s)
+  return new Date(hasTz ? s : s + 'Z').getTime()
+}
+
 function formatGameTime(iso?: string | null): string {
   if (!iso) return '—'
   try {
-    return new Date(iso).toLocaleString('zh-CN', { dateStyle: 'short', timeStyle: 'short' })
+    return new Date(parseUtc(iso)).toLocaleString('zh-CN', { dateStyle: 'short', timeStyle: 'short' })
   } catch {
     return '—'
   }
@@ -193,8 +200,8 @@ function formatGameTime(iso?: string | null): string {
 
 function formatDuration(startIso: string, endIso: string): string {
   try {
-    const s = new Date(startIso).getTime()
-    const e = new Date(endIso).getTime()
+    const s = parseUtc(startIso)
+    const e = parseUtc(endIso)
     const sec = Math.floor((e - s) / 1000)
     const m = Math.floor(sec / 60)
     const s_ = sec % 60
@@ -221,8 +228,7 @@ async function resetWorld() {
 function formatCreatedAt(createdAt?: string): string {
   if (!createdAt) return '—'
   try {
-    const d = new Date(createdAt)
-    return d.toLocaleString('zh-CN', { dateStyle: 'short', timeStyle: 'short' })
+    return new Date(parseUtc(createdAt)).toLocaleString('zh-CN', { dateStyle: 'short', timeStyle: 'short' })
   } catch {
     return '—'
   }
@@ -343,7 +349,9 @@ onUnmounted(() => {
 .player-card.black { background: #2a2a2a; color: #eee; }
 .player-card.white { background: #f0f0f0; color: #222; border: 1px solid #ccc; }
 .player-card.is-turn { border-color: #c9302c; box-shadow: 0 0 0 2px rgba(201,48,44,0.3); }
+.player-card.is-winner { box-shadow: 0 0 0 2px rgba(212,175,55,0.6); }
 .player-label { font-weight: 600; margin-bottom: 0.25rem; }
+.trophy { margin-left: 0.25rem; font-size: 1rem; }
 .player-info { font-size: 0.85rem; opacity: 0.9; }
 .turn-badge {
   margin-top: 0.35rem;
