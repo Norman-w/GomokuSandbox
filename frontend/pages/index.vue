@@ -4,6 +4,15 @@
     <div class="main">
       <div class="left">
         <p class="status">{{ snapshot?.gameStatus ?? '—' }} · 当前 {{ snapshot?.currentTurn ?? '—' }} 落子 · 共 {{ snapshot?.moveCount ?? 0 }} 步</p>
+        <p v-if="snapshot?.gameStartedAt" class="game-time">
+          <span>开局时间：{{ formatGameTime(snapshot.gameStartedAt) }}</span>
+          <template v-if="snapshot?.gameStatus === 'Playing'">
+            <span class="elapsed"> · 进行中：{{ elapsedDuration }}</span>
+          </template>
+          <template v-else-if="snapshot?.gameFinishedAt && snapshot?.gameStartedAt">
+            <span class="total"> · 本局用时：{{ formatDuration(snapshot.gameStartedAt, snapshot.gameFinishedAt) }}</span>
+          </template>
+        </p>
         <div class="board-wrap">
           <div
             class="board"
@@ -28,7 +37,6 @@
           </div>
         </div>
         <div class="actions">
-          <button type="button" @click="ensureGame">开新局</button>
           <button type="button" @click="fetchView">刷新</button>
         </div>
       </div>
@@ -111,6 +119,8 @@ interface Snapshot {
   winner?: string
   lastMoveX?: number | null
   lastMoveY?: number | null
+  gameStartedAt?: string | null
+  gameFinishedAt?: string | null
 }
 
 interface PlayerView {
@@ -154,6 +164,30 @@ const creatorEntries = computed(() =>
   view.value?.narrative?.filter(e => e.role === 'Creator') ?? []
 )
 
+// 本局进行时间（仅对局中有效，刷新 view 后仍会更新）
+const elapsedDuration = ref('0:00')
+const elapsedTimer = ref<ReturnType<typeof setInterval> | null>(null)
+watch(
+  () => view.value?.snapshot?.gameStartedAt && view.value?.snapshot?.gameStatus === 'Playing',
+  (isPlaying) => {
+    if (elapsedTimer.value) { clearInterval(elapsedTimer.value); elapsedTimer.value = null }
+    if (!isPlaying) return
+    const start = view.value?.snapshot?.gameStartedAt
+    if (!start) return
+    const update = () => {
+      const startMs = new Date(start).getTime()
+      const sec = Math.floor((Date.now() - startMs) / 1000)
+      const m = Math.floor(sec / 60)
+      const s = sec % 60
+      elapsedDuration.value = `${m}:${s.toString().padStart(2, '0')}`
+    }
+    update()
+    elapsedTimer.value = setInterval(update, 1000)
+  },
+  { immediate: true }
+)
+onUnmounted(() => { if (elapsedTimer.value) clearInterval(elapsedTimer.value) })
+
 async function fetchView() {
   try {
     const r = await fetch(`${apiBase}/api/UI/view`)
@@ -162,8 +196,13 @@ async function fetchView() {
     // 兼容后端 PascalCase（如 Snapshot）与 camelCase（snapshot）
     const black = raw.blackPlayer ?? raw.BlackPlayer ?? null
     const white = raw.whitePlayer ?? raw.WhitePlayer ?? null
+    const sn = raw.snapshot ?? raw.Snapshot ?? null
+    if (sn) {
+      sn.gameStartedAt = sn.gameStartedAt ?? sn.GameStartedAt ?? null
+      sn.gameFinishedAt = sn.gameFinishedAt ?? sn.GameFinishedAt ?? null
+    }
     view.value = {
-      snapshot: raw.snapshot ?? raw.Snapshot ?? null,
+      snapshot: sn,
       rules: raw.rules ?? raw.Rules ?? {},
       direction: raw.direction ?? raw.Direction ?? '',
       blackPlayer: black ? { ...black, createdAt: black.createdAt ?? black.CreatedAt } : null,
@@ -175,24 +214,37 @@ async function fetchView() {
   }
 }
 
-async function ensureGame() {
+function formatGameTime(iso?: string | null): string {
+  if (!iso) return '—'
   try {
-    const r = await fetch(`${apiBase}/api/UI/ensure`, { method: 'POST' })
-    if (r.ok) {
-      await fetchView()
-    } else {
-      const text = await r.text()
-      alert(text || '开新局失败')
-    }
-  } catch (e) {
-    console.error(e)
+    return new Date(iso).toLocaleString('zh-CN', { dateStyle: 'short', timeStyle: 'short' })
+  } catch {
+    return '—'
+  }
+}
+
+function formatDuration(startIso: string, endIso: string): string {
+  try {
+    const s = new Date(startIso).getTime()
+    const e = new Date(endIso).getTime()
+    const sec = Math.floor((e - s) / 1000)
+    const m = Math.floor(sec / 60)
+    const s_ = sec % 60
+    return `${m} 分 ${s_} 秒`
+  } catch {
+    return '—'
   }
 }
 
 async function resetWorld() {
   try {
     const r = await fetch(`${apiBase}/api/UI/reset`, { method: 'POST' })
-    if (r.ok) await fetchView()
+    if (r.ok) {
+      await new Promise(r => setTimeout(r, 150))
+      await fetchView()
+    } else {
+      alert('重置失败')
+    }
   } catch (e) {
     console.error(e)
   }
@@ -290,13 +342,13 @@ onUnmounted(() => {
 }
 .stone.black { background: #1a1a1a; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
 .stone.white { background: #f5f5f5; box-shadow: 0 1px 2px rgba(0,0,0,0.2); border: 1px solid #ccc; }
-/* 刚下的棋子闪烁 */
+/* 最后一子持续闪烁 */
 .cell.last-placed .stone {
-  animation: stone-blink 0.5s ease-in-out 4;
+  animation: stone-flash 1s ease-in-out infinite;
 }
-@keyframes stone-blink {
+@keyframes stone-flash {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.15); }
+  50% { opacity: 0.4; transform: scale(1.12); }
 }
 
 .actions { margin-top: 1rem; display: flex; gap: 0.5rem; }
@@ -342,6 +394,9 @@ onUnmounted(() => {
 .muted { margin: 0; font-size: 0.85rem; color: #888; }
 .players .hint { margin-bottom: 0.5rem; font-size: 0.8rem; }
 .player-info.not-joined { font-style: italic; color: #999; }
+.game-time { margin: 0.25rem 0; font-size: 0.9rem; color: #555; }
+.game-time .elapsed { color: #286090; }
+.game-time .total { color: #2a2a2a; font-weight: 500; }
 .panel-actions { margin-top: 0.25rem; }
 .btn-reset { padding: 0.35rem 0.6rem; font-size: 0.8rem; color: #666; background: #eee; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; }
 .btn-reset:hover { background: #e0e0e0; }

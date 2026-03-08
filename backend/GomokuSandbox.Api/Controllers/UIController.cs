@@ -107,7 +107,6 @@ public class UIController : ControllerBase
     [HttpPost("reset")]
     public IActionResult ResetWorld()
     {
-        _narrative.Clear();
         _world.ResetWorld();
         return Ok();
     }

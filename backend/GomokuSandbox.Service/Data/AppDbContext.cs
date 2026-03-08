@@ -10,4 +10,5 @@ public class AppDbContext : DbContext
     public DbSet<Game> Games => Set<Game>();
     public DbSet<GameMove> GameMoves => Set<GameMove>();
     public DbSet<NarrativeEntry> NarrativeEntries => Set<NarrativeEntry>();
+    public DbSet<WorldRules> WorldRules => Set<WorldRules>();
 }
