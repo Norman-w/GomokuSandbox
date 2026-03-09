@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# 根目录一键启动：先清理端口/进程占用，再后台启动后端与前端，退出前显示 PID 与状态。
+# 根目录一键启动：先清理端口/进程占用，再启动前后端，日志从本 sh 输出，Ctrl+C 退出并停掉前后端。
+# 跨平台：Windows（需 Git Bash / WSL / MSYS）与 Linux/macOS 均可运行。
 set -e
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,6 +9,9 @@ FRONTEND_DIR="$REPO_ROOT/frontend"
 BACKEND_PORT=5244
 FRONTEND_PORT=3001
 
+# 是否在 Windows 环境（Git Bash / MSYS 等）：用 taskkill 才能可靠结束进程
+is_windows() { [[ -n "$WINDIR" ]] || [[ "$OSTYPE" =~ ^(msys|cygwin) ]]; }
+
 # 结束占用指定端口的进程，避免打不开或多开
 kill_port() {
   local port=$1
@@ -15,15 +19,19 @@ kill_port() {
   if command -v lsof &>/dev/null; then
     pids=$(lsof -ti ":$port" 2>/dev/null || true)
   else
-    # Windows Git Bash 等无 lsof 时用 netstat
-    pids=$(netstat -ano 2>/dev/null | grep -E ":$port\\s+.*LISTENING" | awk '{print $NF}' | sort -u || true)
+    # Windows 无 lsof 时用 netstat（最后一列为 PID）
+    pids=$(netstat -ano 2>/dev/null | grep ":$port" | grep LISTENING | awk '{print $NF}' | sort -u || true)
   fi
   if [[ -n "$pids" ]]; then
     echo "[run] 发现端口 $port 已被占用 (PID: $pids)，正在结束进程..."
     for pid in $pids; do
-      kill -9 "$pid" 2>/dev/null || true
+      if is_windows; then
+        taskkill //F //PID "$pid" 2>/dev/null || true
+      else
+        kill -9 "$pid" 2>/dev/null || true
+      fi
     done
-    sleep 1
+    sleep 2
   fi
 }
 
@@ -31,43 +39,39 @@ echo "[run] 检查端口与进程占用（避免打不开或多开）..."
 kill_port "$BACKEND_PORT"
 kill_port "$FRONTEND_PORT"
 
-# 后台启动后端（不阻塞，退出后继续运行）
-echo "[run] 在后台启动后端 (dotnet run)..."
-(
-  cd "$BACKEND_DIR"
-  nohup dotnet run >> "$REPO_ROOT/backend.log" 2>&1
-) &
+# Ctrl+C 或脚本退出时停掉前后端（Windows 下用 taskkill 才能可靠结束 dotnet/node）
+cleanup() {
+  echo ""
+  echo "[run] 正在停止前后端..."
+  if is_windows; then
+    taskkill //F //PID $BACKEND_PID 2>/dev/null || true
+    taskkill //F //PID $FRONTEND_PID 2>/dev/null || true
+    kill_port "$BACKEND_PORT"
+    kill_port "$FRONTEND_PORT"
+  else
+    kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true
+  fi
+  trap - INT TERM EXIT
+  exit 0
+}
+trap cleanup INT TERM EXIT
+
+# 后台启动后端，日志直接打到当前终端（带前缀便于区分）
+echo "[run] 启动后端 (dotnet run)，日志见下方 [backend]..."
+( cd "$BACKEND_DIR" && dotnet run 2>&1 | sed 's/^/[backend] /' ) &
 BACKEND_PID=$!
-disown $BACKEND_PID 2>/dev/null || true
 
-# 后台启动前端（不阻塞，退出后继续运行）
-echo "[run] 在后台启动前端 (pnpm dev)..."
-(
-  cd "$FRONTEND_DIR"
-  nohup pnpm dev >> "$REPO_ROOT/frontend.log" 2>&1
-) &
+# 后台启动前端，日志直接打到当前终端（带前缀便于区分）
+echo "[run] 启动前端 (pnpm dev)，日志见下方 [frontend]..."
+( cd "$FRONTEND_DIR" && pnpm dev 2>&1 | sed 's/^/[frontend] /' ) &
 FRONTEND_PID=$!
-disown $FRONTEND_PID 2>/dev/null || true
 
-sleep 2
-
-# 显示进程 ID 和状态
 echo ""
 echo "=========================================="
-echo "[run] 已启动，进程 ID 与状态："
+echo "[run] 前后端已启动，日志在下方。按 Ctrl+C 退出并停止前后端。"
+echo "  后端: http://localhost:$BACKEND_PORT  前端: http://localhost:$FRONTEND_PORT"
 echo "=========================================="
-if kill -0 "$BACKEND_PID" 2>/dev/null; then
-  echo "  后端 (dotnet):  PID $BACKEND_PID  状态: 运行中"
-else
-  echo "  后端 (dotnet):  PID $BACKEND_PID  状态: 已退出（请查看 $REPO_ROOT/backend.log）"
-fi
-if kill -0 "$FRONTEND_PID" 2>/dev/null; then
-  echo "  前端 (pnpm):    PID $FRONTEND_PID  状态: 运行中"
-else
-  echo "  前端 (pnpm):    PID $FRONTEND_PID  状态: 已退出（请查看 $REPO_ROOT/frontend.log）"
-fi
-echo "=========================================="
-echo "  后端地址: http://localhost:$BACKEND_PORT"
-echo "  前端地址: http://localhost:$FRONTEND_PORT"
-echo "  停止: kill $BACKEND_PID $FRONTEND_PID"
-echo "=========================================="
+echo ""
+
+# 保持脚本运行，直到收到 Ctrl+C 或任一子进程退出
+wait
