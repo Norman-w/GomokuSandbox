@@ -33,7 +33,7 @@ public class WorldStateService : IWorldState
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var row = db.WorldRules.FirstOrDefault();
+        var row = db.WorldRules.OrderBy(r => r.Id).FirstOrDefault();
         if (row == null)
             return new WorldRulesDto { MinMovesBeforeWin = 5, BlackAdvantage = 0, Direction = "" };
         return new WorldRulesDto { MinMovesBeforeWin = row.MinMovesBeforeWin, BlackAdvantage = row.BlackAdvantage, Direction = row.Direction ?? string.Empty };
@@ -43,7 +43,7 @@ public class WorldStateService : IWorldState
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var row = db.WorldRules.FirstOrDefault();
+        var row = db.WorldRules.OrderBy(r => r.Id).FirstOrDefault();
         if (row == null)
         {
             row = new WorldRules { MinMovesBeforeWin = rules.MinMovesBeforeWin, BlackAdvantage = rules.BlackAdvantage, Direction = rules.Direction ?? "" };
@@ -177,8 +177,8 @@ public class WorldStateService : IWorldState
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         if (GetCurrentPlayingGame(db) != null) return;
-        var black = db.Players.FirstOrDefault(p => p.Color == "Black") ?? EnsurePlayer("Black", 50);
-        var white = db.Players.FirstOrDefault(p => p.Color == "White") ?? EnsurePlayer("White", 50);
+        var black = db.Players.OrderBy(p => p.Id).FirstOrDefault(p => p.Color == "Black") ?? EnsurePlayer("Black", 50);
+        var white = db.Players.OrderBy(p => p.Id).FirstOrDefault(p => p.Color == "White") ?? EnsurePlayer("White", 50);
         if (black.Id == 0) { db.Players.Add(black); db.SaveChanges(); }
         if (white.Id == 0) { db.Players.Add(white); db.SaveChanges(); }
         var game = new Game { BlackPlayerId = black.Id, WhitePlayerId = white.Id, Status = "Playing", CreatedAt = DateTime.UtcNow };
@@ -190,7 +190,7 @@ public class WorldStateService : IWorldState
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var p = db.Players.FirstOrDefault(x => x.Color == color);
+        var p = db.Players.OrderBy(x => x.Id).FirstOrDefault(x => x.Color == color);
         if (p != null) return p;
         p = new Player { Color = color, Intelligence = intelligence, Score = 0, CreatedAt = DateTime.UtcNow };
         db.Players.Add(p);
