@@ -56,7 +56,7 @@
                 <div class="player-info god-mode">ID {{ view.blackPlayer.id }} · 创建 {{ formatCreatedAt(view.blackPlayer.createdAt) }}</div>
                 <div v-if="view?.pendingRefereeBy === 'Black'" class="turn-badge">我赢了没？</div>
                 <div v-else-if="view?.pendingRefereeBy === 'White'" class="turn-badge waiting">等待裁判</div>
-                <div v-else-if="snapshot?.currentTurn === 'Black' && snapshot?.gameStatus === 'Playing'" class="turn-badge">轮到我了</div>
+                <div v-else-if="snapshot?.currentTurn === 'Black' && snapshot?.gameStatus === 'Playing'" class="turn-badge">思考中。。。</div>
               </template>
               <template v-else>
                 <div class="player-info not-joined">未加入</div>
@@ -72,7 +72,7 @@
                 <div class="player-info god-mode">ID {{ view.whitePlayer.id }} · 创建 {{ formatCreatedAt(view.whitePlayer.createdAt) }}</div>
                 <div v-if="view?.pendingRefereeBy === 'White'" class="turn-badge">我赢了没？</div>
                 <div v-else-if="view?.pendingRefereeBy === 'Black'" class="turn-badge waiting">等待裁判</div>
-                <div v-else-if="snapshot?.currentTurn === 'White' && snapshot?.gameStatus === 'Playing'" class="turn-badge">轮到我了</div>
+                <div v-else-if="snapshot?.currentTurn === 'White' && snapshot?.gameStatus === 'Playing'" class="turn-badge">思考中。。。</div>
               </template>
               <template v-else>
                 <div class="player-info not-joined">未加入</div>
